@@ -1,0 +1,22 @@
+library(caret)
+require(randomForest)
+require(ggplot2)
+set.seed(1000)
+training_URL<-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+test_URL<-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+training<-read.csv(training_URL,na.strings=c("NA",""))
+test<-read.csv(test_URL,na.strings=c("NA",""))
+InTrain<-createDataPartition(y=ptrain$classe,p=0.6,list=FALSE)
+training<-ptrain[InTrain,]
+testing=ptrain[-InTrain,]
+training=training[,6:160]
+testing=testing[,6:160]
+mostly_data<-apply(!is.na(training),2,sum)>10000
+train_na=(apply(!is.na(training),2,sum)/dim(training)[1])<0.03
+test_na=(apply(!is.na(testing),2,sum)/dim(testing)[1])<0.03
+training<-training[,!train_na]
+testing<-testing[,!test_na]
+rf_model<-train(classe~.,data=training,method="rf",
+                trControl=trainControl(method="cv",number=5),
+                prox=TRUE,allowParallel=TRUE)
+rf_model
