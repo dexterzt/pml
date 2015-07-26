@@ -1,0 +1,63 @@
+---
+title: "Prediction of exercise manner"
+date: "July 25, 2015"
+output: html_document
+---
+
+```{r echo=FALSE, message=FALSE, warning = FALSE}
+library(caret)
+library(knitr)
+require(randomForest)
+require(ggplot2)
+require(ipred)
+opts_chunk$set(echo=FALSE, message=FALSE, warning = FALSE)
+set.seed(1000)
+#training_URL<-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+#test_URL<-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+#training<-read.csv(training_URL,na.strings=c("NA",""))
+#test<-read.csv(test_URL,na.strings=c("NA",""))
+ptrain=read.csv("pml-training.csv", na.strings=c("NA",""))
+ptest=read.csv("pml-testing.csv", na.strings=c("NA",""))
+InTrain<-createDataPartition(y=ptrain$classe,p=0.6,list=FALSE)
+training<-ptrain[InTrain,]
+testing=ptrain[-InTrain,]
+training=training[,8:160]
+testing=testing[,8:160]
+#mostly_data<-apply(!is.na(training),2,sum)>10000
+train_na=(apply(!is.na(training),2,sum)/dim(training)[1])<0.03
+test_na=(apply(!is.na(testing),2,sum)/dim(testing)[1])<0.03
+training<-training[,!train_na]
+testing<-testing[,!test_na]
+rf_model<-train(classe~.,data=training,method='treebag',
+                trControl=trainControl(method="cv",number=5),
+                prox=TRUE,allowParallel=TRUE)
+accu=sum(predict(rf_model, testing)==(ptrain$classe[-InTrain]))/dim(testing)[1]
+```
+
+1. **Background and goal**
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, our goal is to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website [here](http://groupware.les.inf.puc-rio.br/har) (see the section on the Weight Lifting Exercise Dataset). 
+
+2. **Data preprocessing**
+
+We split the given training set into a training set and a testing set of size 60% and 40% respectively of the given training set. We will run cross validation on our new training set for parameter selection and use our new testing to closely estimate out of sample error. We dropped index columns from all data sets, i.e. index, username and timestamp.
+Moreover, we find that the columns are either NA free all most NA's, say, above 97% NA's.
+We dropped the latter columns to avoid overwhelming imputation as well as reduce dimensionality. As a result, we are left with 55 variables.
+
+3. **Model fitting and selection.**
+
+We first attempted to build our random forest model using the caret package in R with 5-fold cross validation, however, as the deadline approaches, the computational cost
+is too much and thus we had to resort to tree bagging using the 'treebag' method in
+train function also with 5-fold cross validation. The new model was much faster and the accuracy on the testing set is `r accu`. We expect this to be our out of sample error rate. 
+
+We look at our model details and cross-validation accuracy:
+
+```{r}
+print(rf_model)
+```
+
+The cross-validation accuracy is slightly lower than the accuracy on our testing set, which suggest that our model is not suffering from overfitting and we can expect the testing accuracy, `r accu` to be a good estimate of our out of sample accuracy.
+
+
+
+
